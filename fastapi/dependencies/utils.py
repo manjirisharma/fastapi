@@ -1197,13 +1197,21 @@ def _get_param_aliases(
     validation_alias = field.field_info.validation_alias
     if (
         isinstance(field.field_info, params.Path)
-        or not isinstance(validation_alias, AliasChoices)
-        or any(isinstance(alias, AliasPath) for alias in validation_alias.choices)
+        or isinstance(validation_alias, AliasPath)
+        or (
+            isinstance(validation_alias, AliasChoices)
+            and any(
+                isinstance(choice, AliasPath) for choice in validation_alias.choices
+            )
+        )
     ):
         return [(alias, request_alias)]
-    choices = cast(list[str], validation_alias.choices)
-    # Explicit choices are literal names, including underscores in headers.
-    aliases = [(choice, choice) for choice in choices]
+    if isinstance(validation_alias, AliasChoices):
+        choices = cast(list[str], validation_alias.choices)
+        aliases = [(choice, choice) for choice in choices]
+    else:
+        choices = [alias]
+        aliases = [(alias, request_alias)]
     config = field.config or {}
     if config.get("validate_by_alias") is False or config.get(
         "validate_by_name", config.get("populate_by_name", False)
